@@ -348,7 +348,7 @@ input[type=file]{color:var(--dim);font-size:13px;width:100%;}
   </div>
 
   <!-- Muscle volume breakdown -->
-  <div class="slabel">Weekly volume by muscle</div>
+  <div class="slabel">Weekly sets by muscle</div>
   <div class="card" id="muscleVolCard"><div class="empty">No workouts this week yet</div></div>
 
   <div class="slabel">Quick start</div>
@@ -577,7 +577,15 @@ input[type=file]{color:var(--dim);font-size:13px;width:100%;}
     <h3>New exercise</h3>
     <div class="card">
       <div class="f-row"><label>Name</label><input type="text" id="ceName" placeholder="e.g. Cable Pull-through"></div>
-      <div class="f-row" style="border-bottom:none;"><label>Muscle group</label><select id="ceGroup"></select></div>
+      <div class="f-row"><label>Muscle group</label><select id="ceGroup"></select></div>
+      <div class="f-row" style="border-bottom:none;">
+        <label>Tracking type</label>
+        <select id="ceType">
+          <option value="weighted">Weighted (kg × reps)</option>
+          <option value="reps">Bodyweight (reps only)</option>
+          <option value="hold">Static hold (seconds)</option>
+        </select>
+      </div>
     </div>
     <button class="btn btn-green btn-block" onclick="saveCustEx()">Save</button>
   </div>
@@ -613,22 +621,75 @@ const dbGet=(s,k)=>new Promise((res,rej)=>{const t=db.transaction(s,'readonly');
 // PRESETS
 // ═══════════════════════════════════════════════
 const PRESETS=[
-  {n:"Barbell Bench Press",g:"Chest"},{n:"Incline Dumbbell Press",g:"Chest"},{n:"Cable Fly",g:"Chest"},
-  {n:"Push Up",g:"Chest"},{n:"Dumbbell Flyes",g:"Chest"},{n:"Chest Dip",g:"Chest"},
-  {n:"Squat (Barbell)",g:"Legs"},{n:"Romanian Deadlift",g:"Legs"},{n:"Leg Press",g:"Legs"},
-  {n:"Leg Extension",g:"Legs"},{n:"Leg Curl",g:"Legs"},{n:"Walking Lunge",g:"Legs"},
-  {n:"Hip Thrust",g:"Legs"},{n:"Calf Raise",g:"Legs"},{n:"Bulgarian Split Squat",g:"Legs"},
-  {n:"Deadlift (Barbell)",g:"Back"},{n:"Pull Up",g:"Back"},{n:"Lat Pulldown",g:"Back"},
-  {n:"Barbell Row",g:"Back"},{n:"Seated Cable Row",g:"Back"},{n:"T-Bar Row",g:"Back"},{n:"Face Pull",g:"Back"},
-  {n:"Overhead Press (Barbell)",g:"Shoulders"},{n:"Dumbbell Shoulder Press",g:"Shoulders"},
-  {n:"Lateral Raise",g:"Shoulders"},{n:"Front Raise",g:"Shoulders"},{n:"Rear Delt Fly",g:"Shoulders"},{n:"Arnold Press",g:"Shoulders"},
-  {n:"Barbell Curl",g:"Arms"},{n:"Dumbbell Curl",g:"Arms"},{n:"Hammer Curl",g:"Arms"},
-  {n:"Tricep Pushdown",g:"Arms"},{n:"Skull Crusher",g:"Arms"},{n:"Overhead Tricep Extension",g:"Arms"},{n:"Close Grip Bench Press",g:"Arms"},
-  {n:"Plank",g:"Core"},{n:"Hanging Leg Raise",g:"Core"},{n:"Cable Crunch",g:"Core"},{n:"Russian Twist",g:"Core"},{n:"Ab Wheel Rollout",g:"Core"},
-  {n:"Treadmill Run",g:"Cardio"},{n:"Rowing Machine",g:"Cardio"},{n:"Cycling",g:"Cardio"},{n:"Stair Climber",g:"Cardio"},
+  {n:"Barbell Bench Press",g:"Chest",t:"weighted"},{n:"Incline Dumbbell Press",g:"Chest",t:"weighted"},{n:"Cable Fly",g:"Chest",t:"weighted"},
+  {n:"Push Up",g:"Chest",t:"weighted"},{n:"Dumbbell Flyes",g:"Chest",t:"weighted"},{n:"Chest Dip",g:"Chest",t:"weighted"},
+  {n:"Squat (Barbell)",g:"Legs",t:"weighted"},{n:"Romanian Deadlift",g:"Legs",t:"weighted"},{n:"Leg Press",g:"Legs",t:"weighted"},
+  {n:"Leg Extension",g:"Legs",t:"weighted"},{n:"Leg Curl",g:"Legs",t:"weighted"},{n:"Walking Lunge",g:"Legs",t:"weighted"},
+  {n:"Hip Thrust",g:"Legs",t:"weighted"},{n:"Calf Raise",g:"Legs",t:"weighted"},{n:"Bulgarian Split Squat",g:"Legs",t:"weighted"},
+  {n:"Deadlift (Barbell)",g:"Back",t:"weighted"},{n:"Pull Up",g:"Back",t:"weighted"},{n:"Lat Pulldown",g:"Back",t:"weighted"},
+  {n:"Barbell Row",g:"Back",t:"weighted"},{n:"Seated Cable Row",g:"Back",t:"weighted"},{n:"T-Bar Row",g:"Back",t:"weighted"},{n:"Face Pull",g:"Back",t:"weighted"},
+  {n:"Overhead Press (Barbell)",g:"Shoulders",t:"weighted"},{n:"Dumbbell Shoulder Press",g:"Shoulders",t:"weighted"},
+  {n:"Lateral Raise",g:"Shoulders",t:"weighted"},{n:"Front Raise",g:"Shoulders",t:"weighted"},{n:"Rear Delt Fly",g:"Shoulders",t:"weighted"},{n:"Arnold Press",g:"Shoulders",t:"weighted"},
+  {n:"Barbell Curl",g:"Arms",t:"weighted"},{n:"Dumbbell Curl",g:"Arms",t:"weighted"},{n:"Hammer Curl",g:"Arms",t:"weighted"},
+  {n:"Tricep Pushdown",g:"Arms",t:"weighted"},{n:"Skull Crusher",g:"Arms",t:"weighted"},{n:"Overhead Tricep Extension",g:"Arms",t:"weighted"},{n:"Close Grip Bench Press",g:"Arms",t:"weighted"},
+  {n:"Plank",g:"Core",t:"hold"},{n:"Hanging Leg Raise",g:"Core",t:"weighted"},{n:"Cable Crunch",g:"Core",t:"weighted"},{n:"Russian Twist",g:"Core",t:"weighted"},{n:"Ab Wheel Rollout",g:"Core",t:"weighted"},
+  {n:"Treadmill Run",g:"Cardio",t:"weighted"},{n:"Rowing Machine",g:"Cardio",t:"weighted"},{n:"Cycling",g:"Cardio",t:"weighted"},{n:"Stair Climber",g:"Cardio",t:"weighted"},
+  // CALISTHENICS — reps-based (bodyweight, tracked by reps not weight). hl = muscle group highlighted on heatmap.
+  {n:"Pull Up (Strict)",g:"Calisthenics",t:"reps",hl:"Back"},
+  {n:"Chin Up",g:"Calisthenics",t:"reps",hl:"Back"},
+  {n:"Wide Grip Pull Up",g:"Calisthenics",t:"reps",hl:"Back"},
+  {n:"Archer Pull Up",g:"Calisthenics",t:"reps",hl:"Back"},
+  {n:"Typewriter Pull Up",g:"Calisthenics",t:"reps",hl:"Back"},
+  {n:"Muscle Up",g:"Calisthenics",t:"reps",hl:"Back"},
+  {n:"Push Up (Standard)",g:"Calisthenics",t:"reps",hl:"Chest"},
+  {n:"Diamond Push Up",g:"Calisthenics",t:"reps",hl:"Arms"},
+  {n:"Wide Push Up",g:"Calisthenics",t:"reps",hl:"Chest"},
+  {n:"Decline Push Up",g:"Calisthenics",t:"reps",hl:"Shoulders"},
+  {n:"Archer Push Up",g:"Calisthenics",t:"reps",hl:"Chest"},
+  {n:"Pseudo Planche Push Up",g:"Calisthenics",t:"reps",hl:"Shoulders"},
+  {n:"One-Arm Push Up Progression",g:"Calisthenics",t:"reps",hl:"Chest"},
+  {n:"Dip (Parallel Bars)",g:"Calisthenics",t:"reps",hl:"Arms"},
+  {n:"Ring Dip",g:"Calisthenics",t:"reps",hl:"Arms"},
+  {n:"Bulgarian Dip",g:"Calisthenics",t:"reps",hl:"Arms"},
+  {n:"Pistol Squat",g:"Calisthenics",t:"reps",hl:"Legs"},
+  {n:"Shrimp Squat",g:"Calisthenics",t:"reps",hl:"Legs"},
+  {n:"Jump Squat",g:"Calisthenics",t:"reps",hl:"Legs"},
+  {n:"Nordic Curl",g:"Calisthenics",t:"reps",hl:"Legs"},
+  {n:"Hanging Knee Raise",g:"Calisthenics",t:"reps",hl:"Core"},
+  {n:"Hanging Leg Raise (Strict)",g:"Calisthenics",t:"reps",hl:"Core"},
+  {n:"Toes to Bar",g:"Calisthenics",t:"reps",hl:"Core"},
+  {n:"Inverted Row",g:"Calisthenics",t:"reps",hl:"Back"},
+  {n:"Australian Pull Up",g:"Calisthenics",t:"reps",hl:"Back"},
+  {n:"Handstand Push Up",g:"Calisthenics",t:"reps",hl:"Shoulders"},
+  {n:"Pike Push Up",g:"Calisthenics",t:"reps",hl:"Shoulders"},
+  {n:"Burpee",g:"Calisthenics",t:"reps",hl:"Cardio"},
+  {n:"Skater Squat",g:"Calisthenics",t:"reps",hl:"Legs"},
+  // CALISTHENICS — hold-based (static skills, tracked by time not reps)
+  {n:"L-Sit",g:"Calisthenics",t:"hold",hl:"Core"},
+  {n:"V-Sit",g:"Calisthenics",t:"hold",hl:"Core"},
+  {n:"Tuck Planche",g:"Calisthenics",t:"hold",hl:"Shoulders"},
+  {n:"Advanced Tuck Planche",g:"Calisthenics",t:"hold",hl:"Shoulders"},
+  {n:"Straddle Planche",g:"Calisthenics",t:"hold",hl:"Shoulders"},
+  {n:"Full Planche",g:"Calisthenics",t:"hold",hl:"Shoulders"},
+  {n:"Front Lever",g:"Calisthenics",t:"hold",hl:"Back"},
+  {n:"Tuck Front Lever",g:"Calisthenics",t:"hold",hl:"Back"},
+  {n:"Advanced Tuck Front Lever",g:"Calisthenics",t:"hold",hl:"Back"},
+  {n:"Back Lever",g:"Calisthenics",t:"hold",hl:"Back"},
+  {n:"Tuck Back Lever",g:"Calisthenics",t:"hold",hl:"Back"},
+  {n:"Human Flag",g:"Calisthenics",t:"hold",hl:"Core"},
+  {n:"Tuck Human Flag",g:"Calisthenics",t:"hold",hl:"Core"},
+  {n:"Handstand Hold (Freestanding)",g:"Calisthenics",t:"hold",hl:"Shoulders"},
+  {n:"Handstand Hold (Wall)",g:"Calisthenics",t:"hold",hl:"Shoulders"},
+  {n:"Dead Hang",g:"Calisthenics",t:"hold",hl:"Back"},
+  {n:"Active Hang",g:"Calisthenics",t:"hold",hl:"Back"},
+  {n:"Wall Sit",g:"Calisthenics",t:"hold",hl:"Legs"},
+  {n:"Hollow Body Hold",g:"Calisthenics",t:"hold",hl:"Core"},
+  {n:"Superman Hold",g:"Calisthenics",t:"hold",hl:"Core"},
+  {n:"Ring Support Hold",g:"Calisthenics",t:"hold",hl:"Arms"},
+  {n:"Crow Pose",g:"Calisthenics",t:"hold",hl:"Core"},
 ];
-const GROUPS=["Chest","Back","Shoulders","Arms","Legs","Core","Cardio","Other"];
-const GC={Chest:'#30d158',Back:'#0a84ff',Shoulders:'#ff9f0a',Arms:'#bf5af2',Legs:'#ffd60a',Core:'#64d2ff',Cardio:'#ff375f',Other:'#8e8e93'};
+const GROUPS=["Chest","Back","Shoulders","Arms","Legs","Core","Cardio","Calisthenics","Other"];
+const GC={Chest:'#30d158',Back:'#0a84ff',Shoulders:'#ff9f0a',Arms:'#bf5af2',Legs:'#ffd60a',Core:'#64d2ff',Cardio:'#ff375f',Calisthenics:'#ff6482',Other:'#8e8e93'};
 
 // ═══════════════════════════════════════════════
 // STATE
@@ -673,7 +734,17 @@ async function init(){
 }
 
 function rebuildEx(){
-  allEx=[...PRESETS.map(e=>({...e,custom:false})),...custEx.map(e=>({n:e.name,g:e.group,id:e.id,custom:true}))];
+  allEx=[...PRESETS.map(e=>({...e,custom:false})),...custEx.map(e=>({n:e.name,g:e.group,id:e.id,custom:true,t:e.type||'weighted'}))];
+}
+// Returns the muscle group to use for heatmap/volume display.
+// Calisthenics exercises map to their real muscle (e.hl); everything else uses e.g directly.
+function effGroup(e){
+  if(e.g==='Calisthenics'){
+    if(e.hl) return e.hl;
+    const def=allEx.find(x=>x.n===e.name);
+    return (def&&def.hl)||'Core';
+  }
+  return e.g;
 }
 function populateSelects(){
   const gs=document.getElementById('exGroup'),cg=document.getElementById('ceGroup');
@@ -730,7 +801,7 @@ function renderHome(){
   const weekStart=getWeekStart();
   const ww=workouts.filter(w=>w.endTime>=weekStart);
   const wSess=ww.length;
-  const wSets=ww.reduce((s,w)=>s+w.exercises.reduce((ss,e)=>ss+e.sets.filter(x=>x.w||x.r).length,0),0);
+  const wSets=ww.reduce((s,w)=>s+w.exercises.reduce((ss,e)=>ss+e.sets.filter(isSetLogged).length,0),0);
   const wVol=ww.reduce((s,w)=>s+calcVol(w),0);
   document.getElementById('rlSessions').textContent=`${wSess} / ${goals.sessions}`;
   document.getElementById('rlSets').textContent=`${wSets} / ${goals.sets}`;
@@ -748,7 +819,7 @@ function renderHome(){
   // Heatmap
   const weekMuscles={};
   ww.forEach(w=>w.exercises.forEach(e=>{
-    if(e.sets.some(s=>s.w||s.r)) weekMuscles[e.g]=(weekMuscles[e.g]||0)+1;
+    if(e.sets.some(isSetLogged)){const eg=effGroup(e);weekMuscles[eg]=(weekMuscles[eg]||0)+1;}
   }));
   updateHeatmap(weekMuscles);
 
@@ -900,22 +971,23 @@ function updateHeatmap(muscles){
 
 function renderMuscleVol(ww){
   const card=document.getElementById('muscleVolCard');
-  const vol={};
+  const sets={};
   ww.forEach(w=>w.exercises.forEach(e=>{
-    const v=e.sets.reduce((s,set)=>s+((parseFloat(set.w)||0)*(parseFloat(set.r)||0)),0);
-    vol[e.g]=(vol[e.g]||0)+v;
+    const loggedSets=e.sets.filter(isSetLogged).length;
+    if(!loggedSets) return;
+    const eg=effGroup(e);
+    sets[eg]=(sets[eg]||0)+loggedSets;
   }));
-  const sorted=Object.entries(vol).sort((a,b)=>b[1]-a[1]);
+  const sorted=Object.entries(sets).sort((a,b)=>b[1]-a[1]);
   if(!sorted.length){card.innerHTML='<div class="empty">No workouts this week yet</div>';return;}
   const max=sorted[0][1];
   card.innerHTML=sorted.map(([g,v])=>{
     const pct=max>0?Math.round((v/max)*100):0;
-    const disp=v>=1000?(v/1000).toFixed(1)+'k':Math.round(v).toLocaleString();
     return `<div class="mvol-row">
       <div class="mvol-left"><div class="mvol-dot" style="background:${GC[g]||'#888'}"></div><div class="mvol-name">${g}</div></div>
       <div style="display:flex;align-items:center;gap:10px;">
         <div class="mvol-bar-wrap"><div class="mvol-bar" style="width:${pct}%;background:${GC[g]||'#888'}"></div></div>
-        <div class="mvol-right">${disp} ${unit}</div>
+        <div class="mvol-right">${v} set${v!==1?'s':''}</div>
       </div>
     </div>`;
   }).join('');
@@ -938,7 +1010,7 @@ function startFromTpl(id){
   if(workout){toast('Finish current workout first');goWorkout();return;}
   const t=templates.find(x=>x.id===id); if(!t) return;
   workout={id:'w_'+Date.now(),name:t.name,startTime:Date.now(),notes:'',
-    exercises:t.exercises.map(e=>({...e,sets:e.sets.map(s=>({w:s.w||'',r:s.r||'',done:false}))}))};
+    exercises:t.exercises.map(e=>({...e,sets:e.sets.map(s=>({w:s.w||'',r:s.r||'',hold:s.hold||'',done:false}))}))};
   saveMeta(); startTimer();
   document.getElementById('wTitle').value=workout.name;
   document.getElementById('wNotes').value='';
@@ -965,8 +1037,12 @@ document.getElementById('wNotes').addEventListener('input',e=>{
 
 function onHeroTitle(v){if(workout){workout.name=v;document.getElementById('wTitle').value=v;saveMeta();}}
 
-function addExToWorkout(name,group){
-  workout.exercises.push({name,g:group,sets:[{w:'',r:'',done:false}]});
+function addExToWorkout(name,group,type){
+  type=type||'weighted';
+  const defSet=type==='hold'?{w:'',r:'',hold:'',done:false}:{w:'',r:'',done:false};
+  const def=allEx.find(x=>x.n===name);
+  const hl=def&&def.hl;
+  workout.exercises.push({name,g:group,t:type,hl,sets:[defSet]});
   saveMeta(); renderWEx();
 }
 
@@ -977,15 +1053,36 @@ function renderWEx(){
   if(!workout.exercises.length){card.innerHTML='<div class="empty"><div class="ei">🏋️</div>Add an exercise to begin</div>';return;}
   card.innerHTML=workout.exercises.map((ex,ei)=>{
     const color=GC[ex.g]||'#888';
-    const prevBest=getBestSet(ex.name);
-    return `<div class="ex-block">
-      <div class="ex-hdr">
-        <h3><span class="ex-dot" style="background:${color}"></span>${esc(ex.name)}</h3>
-        <button class="del-btn" onclick="removeEx(${ei})">✕</button>
-      </div>
-      ${prevBest?`<div class="ex-sub">Previous best: ${prevBest.w}${unit} × ${prevBest.r} reps${prevBest.orm?` · 1RM ~${prevBest.orm}${unit}`:''}</div>`:''}
-      <div class="set-hdr"><span>#</span><span>KG</span><span>Reps</span><span>1RM</span><span></span></div>
-      ${ex.sets.map((s,si)=>{
+    const type=ex.t||'weighted';
+    const prevBest=getBestSet(ex.name,type);
+    let prevLine='';
+    if(prevBest){
+      if(type==='hold') prevLine=`<div class="ex-sub">Previous best: ${prevBest.hold}s hold</div>`;
+      else if(type==='reps') prevLine=`<div class="ex-sub">Previous best: ${prevBest.r} reps${prevBest.w?` (+${prevBest.w}${unit})`:''}</div>`;
+      else prevLine=`<div class="ex-sub">Previous best: ${prevBest.w}${unit} × ${prevBest.r} reps${prevBest.orm?` · 1RM ~${prevBest.orm}${unit}`:''}</div>`;
+    }
+
+    let setHdr, setRows;
+    if(type==='hold'){
+      setHdr=`<div class="set-hdr" style="grid-template-columns:24px 1fr 34px;"><span>#</span><span>Hold (seconds)</span><span></span></div>`;
+      setRows=ex.sets.map((s,si)=>`
+        <div class="set-row" style="grid-template-columns:24px 1fr 34px;">
+          <span class="set-num">${si+1}</span>
+          <input type="number" inputmode="numeric" placeholder="0" value="${s.hold||''}" onchange="updSet(${ei},${si},'hold',this.value)">
+          <button class="set-tick${s.done?' done':''}" onclick="tickSet(${ei},${si})">${s.done?'✓':'○'}</button>
+        </div>`).join('');
+    } else if(type==='reps'){
+      setHdr=`<div class="set-hdr" style="grid-template-columns:24px 1fr 1fr 34px;"><span>#</span><span>Reps</span><span>+Weight (${unit})</span><span></span></div>`;
+      setRows=ex.sets.map((s,si)=>`
+        <div class="set-row" style="grid-template-columns:24px 1fr 1fr 34px;">
+          <span class="set-num">${si+1}</span>
+          <input type="number" inputmode="numeric" placeholder="0" value="${s.r}" onchange="updSet(${ei},${si},'r',this.value)">
+          <input type="number" inputmode="decimal" placeholder="—" value="${s.w}" onchange="updSet(${ei},${si},'w',this.value)">
+          <button class="set-tick${s.done?' done':''}" onclick="tickSet(${ei},${si})">${s.done?'✓':'○'}</button>
+        </div>`).join('');
+    } else {
+      setHdr=`<div class="set-hdr"><span>#</span><span>KG</span><span>Reps</span><span>1RM</span><span></span></div>`;
+      setRows=ex.sets.map((s,si)=>{
         const o=orm(s.w,s.r);
         return `<div class="set-row">
           <span class="set-num">${si+1}</span>
@@ -994,7 +1091,17 @@ function renderWEx(){
           <span style="font-size:12px;color:var(--blue);font-weight:600;">${o>0?'~'+o:''}</span>
           <button class="set-tick${s.done?' done':''}" onclick="tickSet(${ei},${si})">${s.done?'✓':'○'}</button>
         </div>`;
-      }).join('')}
+      }).join('');
+    }
+
+    return `<div class="ex-block">
+      <div class="ex-hdr">
+        <h3><span class="ex-dot" style="background:${color}"></span>${esc(ex.name)}${type!=='weighted'?`<span class="orm-badge">${type==='hold'?'HOLD':'BW'}</span>`:''}</h3>
+        <button class="del-btn" onclick="removeEx(${ei})">✕</button>
+      </div>
+      ${prevLine}
+      ${setHdr}
+      ${setRows}
       <div class="ex-actions">
         <button class="btn btn-gray btn-sm" onclick="addSet(${ei})">+ Set</button>
         ${ex.sets.length>1?`<button class="btn btn-red btn-sm" onclick="remSet(${ei})">− Set</button>`:''}
@@ -1007,14 +1114,17 @@ function updSet(ei,si,field,val){
   if(!workout) return;
   workout.exercises[ei].sets[si][field]=val;
   saveMeta();
-  // Update 1RM display inline without full re-render
-  const sets=workout.exercises[ei].sets;
-  const s=sets[si];
-  const o=orm(s.w,s.r);
-  const rows=document.querySelectorAll(`#wExCard .ex-block:nth-child(${ei+1}) .set-row`);
-  if(rows[si]){
-    const ormEl=rows[si].children[3];
-    if(ormEl) ormEl.textContent=o>0?'~'+o:'';
+  const ex=workout.exercises[ei];
+  const type=ex.t||'weighted';
+  if(type==='weighted'){
+    // Update 1RM display inline without full re-render
+    const s=ex.sets[si];
+    const o=orm(s.w,s.r);
+    const rows=document.querySelectorAll(`#wExCard .ex-block:nth-child(${ei+1}) .set-row`);
+    if(rows[si]){
+      const ormEl=rows[si].children[3];
+      if(ormEl) ormEl.textContent=o>0?'~'+o:'';
+    }
   }
 }
 
@@ -1027,9 +1137,15 @@ function tickSet(ei,si){
 }
 
 function addSet(ei){
-  const sets=workout.exercises[ei].sets;
+  const ex=workout.exercises[ei];
+  const sets=ex.sets;
   const last=sets[sets.length-1];
-  sets.push({w:last?last.w:'',r:last?last.r:'',done:false});
+  const type=ex.t||'weighted';
+  if(type==='hold'){
+    sets.push({w:last?last.w:'',r:last?last.r:'',hold:last?last.hold:'',done:false});
+  } else {
+    sets.push({w:last?last.w:'',r:last?last.r:'',done:false});
+  }
   saveMeta(); renderWEx();
 }
 function remSet(ei){
@@ -1041,14 +1157,25 @@ function removeEx(ei){
   saveMeta(); renderWEx();
 }
 
-function getBestSet(name){
+function getBestSet(name,type){
   let best=null;
   workouts.forEach(w=>w.exercises.forEach(e=>{
     if(e.name!==name) return;
     e.sets.forEach(s=>{
-      const o=orm(s.w,s.r);
-      if(!best||parseFloat(s.w)>parseFloat(best.w)||(parseFloat(s.w)===parseFloat(best.w)&&o>best.orm)){
-        best={w:s.w,r:s.r,orm:o};
+      if(type==='hold'){
+        const h=parseFloat(s.hold)||0;
+        if(h<=0) return;
+        if(!best||h>best.hold) best={hold:h};
+      } else if(type==='reps'){
+        const r=parseFloat(s.r)||0;
+        if(r<=0) return;
+        const w=parseFloat(s.w)||0;
+        if(!best||r>best.r||(r===best.r&&w>best.w)) best={r,w};
+      } else {
+        const o=orm(s.w,s.r);
+        if(!best||parseFloat(s.w)>parseFloat(best.w)||(parseFloat(s.w)===parseFloat(best.w)&&o>best.orm)){
+          best={w:s.w,r:s.r,orm:o};
+        }
       }
     });
   }));
@@ -1135,17 +1262,20 @@ function filterEx(){
   const g=document.getElementById('exGroup').value;
   const filtered=allEx.filter(e=>e.n.toLowerCase().includes(q)&&(g==='all'||e.g===g));
   const el=document.getElementById('exList');
-  el.innerHTML=filtered.map(e=>`
-    <div class="si" onclick="pickEx('${esc(e.n)}','${e.g}')">
-      <div><div class="sn">${esc(e.n)}</div><div class="sm">${e.g}${e.custom?' · custom':''}</div></div>
+  el.innerHTML=filtered.map(e=>{
+    const typeTag=e.t==='hold'?' · hold':e.t==='reps'?' · bodyweight':'';
+    return `
+    <div class="si" onclick="pickEx('${esc(e.n)}','${e.g}','${e.t||'weighted'}')">
+      <div><div class="sn">${esc(e.n)}</div><div class="sm">${e.g}${typeTag}${e.custom?' · custom':''}</div></div>
       <span style="color:var(--dim)">›</span>
-    </div>`).join('')||'<div class="empty">No results</div>';
+    </div>`;
+  }).join('')||'<div class="empty">No results</div>';
 }
 
-function pickEx(name,group){
+function pickEx(name,group,type){
   closeModal('exPickerModal');
-  if(exPickTarget==='workout') addExToWorkout(name,group);
-  else if(exPickTarget==='template') addExToTpl(name,group);
+  if(exPickTarget==='workout') addExToWorkout(name,group,type);
+  else if(exPickTarget==='template') addExToTpl(name,group,type);
   else if(exPickTarget==='progress'){
     progEx=name;
     document.getElementById('progExName').textContent=name;
@@ -1165,8 +1295,12 @@ function openTplEditor(id){
   openModal('tplModal');
 }
 
-function addExToTpl(name,group){
-  tplEditing.exercises.push({name,g:group,sets:[{w:'',r:''}]});
+function addExToTpl(name,group,type){
+  type=type||'weighted';
+  const defSet=type==='hold'?{w:'',r:'',hold:''}:{w:'',r:''};
+  const def=allEx.find(x=>x.n===name);
+  const hl=def&&def.hl;
+  tplEditing.exercises.push({name,g:group,t:type,hl,sets:[defSet]});
   renderTplEx();
 }
 
@@ -1175,16 +1309,37 @@ function renderTplEx(){
   if(!tplEditing.exercises.length){card.innerHTML='<div class="empty">No exercises</div>';return;}
   card.innerHTML=tplEditing.exercises.map((ex,ei)=>{
     const color=GC[ex.g]||'#888';
-    return `<div class="ex-block">
-      <div class="ex-hdr"><h3><span class="ex-dot" style="background:${color}"></span>${esc(ex.name)}</h3>
-      <button class="del-btn" onclick="remTplEx(${ei})">✕</button></div>
-      <div class="set-hdr" style="grid-template-columns:24px 1fr 1fr 34px;"><span>#</span><span>Weight</span><span>Reps</span><span></span></div>
-      ${ex.sets.map((s,si)=>`<div class="set-row" style="grid-template-columns:24px 1fr 1fr 34px;">
+    const type=ex.t||'weighted';
+    let hdr,rows;
+    if(type==='hold'){
+      hdr=`<div class="set-hdr" style="grid-template-columns:24px 1fr 34px;"><span>#</span><span>Hold (seconds)</span><span></span></div>`;
+      rows=ex.sets.map((s,si)=>`<div class="set-row" style="grid-template-columns:24px 1fr 34px;">
+        <span class="set-num">${si+1}</span>
+        <input type="number" placeholder="0" value="${s.hold||''}" onchange="updTplSet(${ei},${si},'hold',this.value)">
+        <span></span>
+      </div>`).join('');
+    } else if(type==='reps'){
+      hdr=`<div class="set-hdr" style="grid-template-columns:24px 1fr 1fr 34px;"><span>#</span><span>Reps</span><span>+Weight (${unit})</span><span></span></div>`;
+      rows=ex.sets.map((s,si)=>`<div class="set-row" style="grid-template-columns:24px 1fr 1fr 34px;">
+        <span class="set-num">${si+1}</span>
+        <input type="number" placeholder="0" value="${s.r}" onchange="updTplSet(${ei},${si},'r',this.value)">
+        <input type="number" placeholder="—" value="${s.w}" onchange="updTplSet(${ei},${si},'w',this.value)">
+        <span></span>
+      </div>`).join('');
+    } else {
+      hdr=`<div class="set-hdr" style="grid-template-columns:24px 1fr 1fr 34px;"><span>#</span><span>Weight</span><span>Reps</span><span></span></div>`;
+      rows=ex.sets.map((s,si)=>`<div class="set-row" style="grid-template-columns:24px 1fr 1fr 34px;">
         <span class="set-num">${si+1}</span>
         <input type="number" placeholder="0" value="${s.w}" onchange="updTplSet(${ei},${si},'w',this.value)">
         <input type="number" placeholder="0" value="${s.r}" onchange="updTplSet(${ei},${si},'r',this.value)">
         <span></span>
-      </div>`).join('')}
+      </div>`).join('');
+    }
+    return `<div class="ex-block">
+      <div class="ex-hdr"><h3><span class="ex-dot" style="background:${color}"></span>${esc(ex.name)}${type!=='weighted'?`<span class="orm-badge">${type==='hold'?'HOLD':'BW'}</span>`:''}</h3>
+      <button class="del-btn" onclick="remTplEx(${ei})">✕</button></div>
+      ${hdr}
+      ${rows}
       <div class="ex-actions">
         <button class="btn btn-gray btn-sm" onclick="addTplSet(${ei})">+ Set</button>
         ${ex.sets.length>1?`<button class="btn btn-red btn-sm" onclick="remTplSet(${ei})">− Set</button>`:''}
@@ -1194,7 +1349,15 @@ function renderTplEx(){
 }
 
 function updTplSet(ei,si,f,v){tplEditing.exercises[ei].sets[si][f]=v;}
-function addTplSet(ei){const s=tplEditing.exercises[ei].sets;s.push({w:s[s.length-1]?.w||'',r:s[s.length-1]?.r||''});renderTplEx();}
+function addTplSet(ei){
+  const ex=tplEditing.exercises[ei];
+  const s=ex.sets;
+  const last=s[s.length-1]||{};
+  const type=ex.t||'weighted';
+  if(type==='hold') s.push({w:last.w||'',r:last.r||'',hold:last.hold||''});
+  else s.push({w:last.w||'',r:last.r||''});
+  renderTplEx();
+}
 function remTplSet(ei){tplEditing.exercises[ei].sets.pop();renderTplEx();}
 function remTplEx(ei){tplEditing.exercises.splice(ei,1);renderTplEx();}
 
@@ -1275,7 +1438,7 @@ function renderHist(){
   el.innerHTML=workouts.map(w=>{
     const d=new Date(w.endTime);
     const mins=Math.floor((w.duration||0)/60);
-    const sets=w.exercises.reduce((s,e)=>s+e.sets.filter(x=>x.w||x.r).length,0);
+    const sets=w.exercises.reduce((s,e)=>s+e.sets.filter(isSetLogged).length,0);
     const vol=Math.round(calcVol(w));
     return `<div class="hist-card">
       <div class="hist-hdr">
@@ -1286,7 +1449,7 @@ function renderHist(){
         <button class="del-btn" onclick="deleteWorkout('${w.id}')">✕</button>
       </div>
       ${w.exercises.map(e=>{
-        const ss=e.sets.filter(s=>s.w||s.r).map(s=>`${s.w||0}${unit}×${s.r||0}`).join(', ');
+        const ss=e.sets.filter(isSetLogged).map(s=>formatSet(s,e.t||'weighted',unit)).join(', ');
         const color=GC[e.g]||'#888';
         return `<div class="hist-ex"><div class="he"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:6px;vertical-align:middle;"></span>${esc(e.name)}</div><div class="hes">${ss||'—'}</div></div>`;
       }).join('')}
@@ -1306,31 +1469,128 @@ async function deleteWorkout(id){
 function renderPRs(){
   const prs={};
   workouts.forEach(w=>w.exercises.forEach(e=>{
+    const type=e.t||'weighted';
     e.sets.forEach(s=>{
-      const wt=parseFloat(s.w)||0,rp=parseFloat(s.r)||0;
-      if(!wt&&!rp) return;
-      const o=orm(s.w,s.r);
-      if(!prs[e.name]||o>prs[e.name].orm||(o===prs[e.name].orm&&wt>prs[e.name].w)){
-        prs[e.name]={w:wt,r:rp,orm:o,date:w.endTime};
+      if(type==='hold'){
+        const h=parseFloat(s.hold)||0;
+        if(h<=0) return;
+        if(!prs[e.name]||h>prs[e.name].hold) prs[e.name]={type,hold:h,date:w.endTime};
+      } else if(type==='reps'){
+        const r=parseFloat(s.r)||0,wt=parseFloat(s.w)||0;
+        if(r<=0) return;
+        if(!prs[e.name]||r>prs[e.name].r||(r===prs[e.name].r&&wt>prs[e.name].w)) prs[e.name]={type,r,w:wt,date:w.endTime};
+      } else {
+        const wt=parseFloat(s.w)||0,rp=parseFloat(s.r)||0;
+        if(!wt&&!rp) return;
+        const o=orm(s.w,s.r);
+        if(!prs[e.name]||o>prs[e.name].orm||(o===prs[e.name].orm&&wt>prs[e.name].w)){
+          prs[e.name]={type,w:wt,r:rp,orm:o,date:w.endTime};
+        }
       }
     });
   }));
-  const sorted=Object.entries(prs).sort((a,b)=>b[1].orm-a[1].orm);
+  const sortVal=p=>p.type==='hold'?p.hold:p.type==='reps'?p.r:p.orm;
+  const sorted=Object.entries(prs).sort((a,b)=>sortVal(b[1])-sortVal(a[1]));
   const card=document.getElementById('prCard');
   if(!sorted.length){card.innerHTML='<div class="empty">Log workouts to see PRs</div>';return;}
-  card.innerHTML=sorted.slice(0,20).map(([name,p])=>`
-    <div class="pr-row">
+  card.innerHTML=sorted.slice(0,20).map(([name,p])=>{
+    let right;
+    if(p.type==='hold') right=`<div class="pr-weight">${p.hold}s</div><div class="pr-orm">hold time</div>`;
+    else if(p.type==='reps') right=`<div class="pr-weight">${p.r} reps</div><div class="pr-orm">${p.w?`+${p.w}${unit}`:'bodyweight'}</div>`;
+    else right=`<div class="pr-weight">${p.w}${unit} × ${p.r}</div><div class="pr-orm">~${p.orm}${unit} 1RM</div>`;
+    return `<div class="pr-row">
       <div class="pr-left"><div class="pr-ex">${esc(name)}</div><div class="pr-date">${new Date(p.date).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}</div></div>
-      <div class="pr-right"><div class="pr-weight">${p.w}${unit} × ${p.r}</div><div class="pr-orm">~${p.orm}${unit} 1RM</div></div>
-    </div>`).join('');
+      <div class="pr-right">${right}</div>
+    </div>`;
+  }).join('');
 }
 
-// ═══════════════════════════════════════════════
-// PROGRESS — CHARTS
 // ═══════════════════════════════════════════════
 function renderProgress(){
   const el=document.getElementById('progContent');
   if(!progEx){el.innerHTML='';return;}
+  // Determine exercise type: check allEx first, fall back to most recent logged instance
+  let progType='weighted';
+  const exDef=allEx.find(e=>e.n===progEx);
+  if(exDef&&exDef.t) progType=exDef.t;
+  else{
+    for(let i=workouts.length-1;i>=0;i--){
+      const found=workouts[i].exercises.find(e=>e.name===progEx);
+      if(found){progType=found.t||'weighted';break;}
+    }
+  }
+
+  if(progType==='hold'){
+    const pts=[];
+    workouts.slice().sort((a,b)=>a.endTime-b.endTime).forEach(w=>{
+      w.exercises.forEach(e=>{
+        if(e.name!==progEx) return;
+        let mh=0,sets=0;
+        e.sets.forEach(s=>{const h=parseFloat(s.hold)||0;if(h>mh)mh=h;if(h>0)sets++;});
+        if(sets) pts.push({date:w.endTime,mh,sets});
+      });
+    });
+    if(!pts.length){el.innerHTML='<div class="card card-pad"><div class="empty">No data for this exercise yet</div></div>';return;}
+    const best=pts.reduce((a,b)=>b.mh>a.mh?b:a);
+    const labels=pts.map(p=>new Date(p.date).toLocaleDateString(undefined,{month:'short',day:'numeric'}));
+    el.innerHTML=`
+      <div class="sgrid" style="margin-bottom:12px;">
+        <div class="scard"><div class="v">${best.mh}s</div><div class="l">Best hold</div></div>
+        <div class="scard"><div class="v">${pts[pts.length-1].mh}s</div><div class="l">Latest hold</div></div>
+      </div>
+      <div class="slabel">Hold time per session</div>
+      <div class="card card-pad"><div class="chart-wrap"><canvas id="cHold"></canvas></div></div>`;
+    progCharts.forEach(c=>c.destroy()); progCharts=[];
+    const grid='#38383a',tick='#8e8e93';
+    progCharts.push(new Chart(document.getElementById('cHold'),{type:'line',
+      data:{labels,datasets:[{data:pts.map(p=>p.mh),borderColor:'#ff6482',backgroundColor:'#ff648222',fill:true,tension:.3,pointRadius:3,borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:grid},ticks:{color:tick}},x:{grid:{display:false},ticks:{color:tick,maxTicksLimit:6}}}}
+    }));
+    return;
+  }
+
+  if(progType==='reps'){
+    const pts=[];
+    workouts.slice().sort((a,b)=>a.endTime-b.endTime).forEach(w=>{
+      w.exercises.forEach(e=>{
+        if(e.name!==progEx) return;
+        let mr=0,totalReps=0,mw=0,sets=0;
+        e.sets.forEach(s=>{
+          const r=parseFloat(s.r)||0,wt=parseFloat(s.w)||0;
+          if(r>mr) mr=r;
+          if(wt>mw) mw=wt;
+          totalReps+=r;
+          if(r>0) sets++;
+        });
+        if(sets) pts.push({date:w.endTime,mr,totalReps,mw,sets});
+      });
+    });
+    if(!pts.length){el.innerHTML='<div class="card card-pad"><div class="empty">No data for this exercise yet</div></div>';return;}
+    const best=pts.reduce((a,b)=>b.mr>a.mr?b:a);
+    const labels=pts.map(p=>new Date(p.date).toLocaleDateString(undefined,{month:'short',day:'numeric'}));
+    el.innerHTML=`
+      <div class="sgrid" style="margin-bottom:12px;">
+        <div class="scard"><div class="v">${best.mr}</div><div class="l">Best single-set reps</div></div>
+        <div class="scard"><div class="v">${pts[pts.length-1].totalReps}</div><div class="l">Latest total reps</div></div>
+      </div>
+      <div class="slabel">Max reps per session</div>
+      <div class="card card-pad"><div class="chart-wrap"><canvas id="cReps"></canvas></div></div>
+      <div class="slabel">Total reps per session</div>
+      <div class="card card-pad"><div class="chart-wrap"><canvas id="cTotalReps"></canvas></div></div>`;
+    progCharts.forEach(c=>c.destroy()); progCharts=[];
+    const grid='#38383a',tick='#8e8e93';
+    progCharts.push(new Chart(document.getElementById('cReps'),{type:'line',
+      data:{labels,datasets:[{data:pts.map(p=>p.mr),borderColor:'#ff6482',backgroundColor:'#ff648222',fill:true,tension:.3,pointRadius:3,borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:grid},ticks:{color:tick}},x:{grid:{display:false},ticks:{color:tick,maxTicksLimit:6}}}}
+    }));
+    progCharts.push(new Chart(document.getElementById('cTotalReps'),{type:'bar',
+      data:{labels,datasets:[{data:pts.map(p=>p.totalReps),backgroundColor:'#0a84ff88',borderColor:'#0a84ff',borderWidth:1}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:grid},ticks:{color:tick}},x:{grid:{display:false},ticks:{color:tick,maxTicksLimit:6}}}}
+    }));
+    return;
+  }
+
+  // weighted (original logic)
   const pts=[];
   workouts.slice().sort((a,b)=>a.endTime-b.endTime).forEach(w=>{
     w.exercises.forEach(e=>{
@@ -1473,13 +1733,15 @@ async function saveRestDuration(v){restDur=parseInt(v)||90;saveMeta();}
 function openAddCustEx(){
   document.getElementById('ceName').value='';
   document.getElementById('ceGroup').value='Chest';
+  document.getElementById('ceType').value='weighted';
   openModal('custExModal');
 }
 async function saveCustEx(){
   const name=document.getElementById('ceName').value.trim();
   if(!name){toast('Enter a name');return;}
   const group=document.getElementById('ceGroup').value;
-  const ex={id:'c_'+Date.now(),name,group};
+  const type=document.getElementById('ceType').value;
+  const ex={id:'c_'+Date.now(),name,group,type};
   custEx.push(ex); await dbPut('customEx',ex);
   rebuildEx(); renderCustEx(); closeModal('custExModal'); toast('Exercise added');
 }
@@ -1490,7 +1752,8 @@ async function deleteCustEx(id){
 function renderCustEx(){
   const card=document.getElementById('custExCard');
   if(!custEx.length){card.innerHTML='<div class="empty">None added</div>';return;}
-  card.innerHTML=custEx.map(e=>`<div class="card-row"><div><div class="lbl">${esc(e.name)}</div><div style="font-size:12px;color:var(--dim);">${e.group}</div></div><button class="del-btn" onclick="deleteCustEx('${e.id}')">✕</button></div>`).join('');
+  const typeLabel={weighted:'weighted',reps:'bodyweight',hold:'hold'};
+  card.innerHTML=custEx.map(e=>`<div class="card-row"><div><div class="lbl">${esc(e.name)}</div><div style="font-size:12px;color:var(--dim);">${e.group} · ${typeLabel[e.type]||'weighted'}</div></div><button class="del-btn" onclick="deleteCustEx('${e.id}')">✕</button></div>`).join('');
 }
 
 // Export / Import
@@ -1537,6 +1800,12 @@ async function clearAll(){
 // UTILS
 // ═══════════════════════════════════════════════
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function isSetLogged(s){return !!(s.w||s.r||s.hold);}
+function formatSet(s,type,u){
+  if(type==='hold') return `${s.hold||0}s hold`;
+  if(type==='reps') return s.w?`${s.r||0} reps (+${s.w}${u})`:`${s.r||0} reps`;
+  return `${s.w||0}${u}×${s.r||0}`;
+}
 
 // ═══════════════════════════════════════════════
 // BOOT
