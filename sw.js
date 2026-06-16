@@ -2,6 +2,7 @@ const CACHE_NAME = 'ironlog-v1';
 const ASSETS = [
   './index.html',
   './manifest.json',
+  './meals.html',
   './icon-192.png',
   './icon-512.png'
 ];
@@ -22,23 +23,28 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// NETWORK-FIRST strategy: always try to fetch the latest file from GitHub.
+// Only fall back to the cached copy if the network request fails (offline).
+// This means any file you update on GitHub shows up immediately on next load,
+// with no need to manually bump CACHE_NAME or clear anything.
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  // Don't cache CDN (Chart.js) - always try network for that, fallback gracefully
-  if (event.request.url.includes('cdnjs.cloudflare.com')) {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
-    );
-    return;
-  }
+
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((response) => {
+    fetch(event.request, {cache: 'no-store'})
+      .then((response) => {
+        // Got a fresh copy from the network — cache it for offline fallback later
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         return response;
-      }).catch(() => caches.match('./index.html'));
-    })
+      })
+      .catch(() => {
+        // Network failed (offline) — serve the last cached version instead
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          // No cache either — fall back to the app shell so it doesn't fully break
+          return caches.match('./index.html');
+        });
+      })
   );
 });

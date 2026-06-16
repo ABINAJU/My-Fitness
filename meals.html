@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Meal Planner</title>
+<style>
+:root{
+  --bg:#000;--surface:#1c1c1e;--s2:#2c2c2e;--line:#38383a;
+  --text:#fff;--dim:#8e8e93;--accent:#30d158;--blue:#0a84ff;
+  --pink:#ff375f;--orange:#ff9f0a;--purple:#bf5af2;--danger:#ff453a;
+  --teal:#5ac8fa;--f:-apple-system,system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--text);font-family:var(--f);-webkit-font-smoothing:antialiased;}
+body{padding-bottom:90px;min-height:100vh;}
+.hdr{padding:52px 16px 8px;}
+.hdr h1{font-size:34px;font-weight:700;letter-spacing:-.5px;}
+.hdr .sub{font-size:13px;color:var(--dim);margin-top:2px;}
+.view{display:none;padding:0 16px 24px;}
+.view.active{display:block;}
+.slabel{font-size:13px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 8px;}
+.card{background:var(--surface);border-radius:14px;overflow:hidden;margin-bottom:12px;}
+.card-pad{padding:16px;}
+.crow{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:.5px solid var(--line);}
+.crow:last-child{border-bottom:none;}
+/* MACRO RING CARD */
+.macro-hero{background:var(--surface);border-radius:14px;padding:20px 16px;margin-bottom:12px;}
+.macro-big{text-align:center;margin-bottom:18px;}
+.macro-big .kb{font-size:52px;font-weight:700;line-height:1;}
+.macro-big .ks{font-size:14px;color:var(--dim);margin-top:4px;}
+.macro-big .kr{font-size:13px;margin-top:6px;font-weight:600;}
+.macro-bars{display:flex;flex-direction:column;gap:10px;}
+.mbar-row{display:flex;align-items:center;gap:10px;}
+.mbar-label{font-size:12px;color:var(--dim);width:52px;flex-shrink:0;}
+.mbar-track{flex:1;height:8px;background:var(--s2);border-radius:4px;overflow:hidden;}
+.mbar-fill{height:100%;border-radius:4px;transition:width .3s;}
+.mbar-val{font-size:13px;font-weight:700;width:70px;text-align:right;flex-shrink:0;}
+/* MEAL SLOT */
+.meal-slot{background:var(--surface);border-radius:14px;margin-bottom:12px;overflow:hidden;}
+.slot-hdr{padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:flex-start;}
+.slot-time{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;}
+.slot-name{font-size:17px;font-weight:600;margin-top:2px;}
+.slot-kcal{font-size:13px;color:var(--dim);margin-top:2px;}
+.slot-empty{font-size:14px;color:var(--dim);margin-top:4px;font-style:italic;}
+.slot-add{padding:10px 16px 12px;}
+/* LOGGED FOOD */
+.lf-row{padding:10px 16px;border-top:.5px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+.lf-left .lfn{font-size:14px;font-weight:500;}
+.lf-left .lfq{font-size:12px;color:var(--dim);margin-top:2px;}
+.lf-right{display:flex;align-items:center;gap:8px;}
+.lf-kcal{font-size:14px;font-weight:600;}
+.lf-del{background:none;border:none;color:var(--danger);font-size:18px;cursor:pointer;padding:2px 4px;}
+/* RECOMMEND BTN */
+.rec-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:rgba(10,132,255,.12);color:var(--blue);border:1px dashed rgba(10,132,255,.3);border-radius:10px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--f);}
+.rec-btn:active{opacity:.7;}
+/* WATER */
+.water-row{display:flex;align-items:center;gap:10px;padding:14px 16px;}
+.water-cups{display:flex;gap:6px;flex-wrap:wrap;flex:1;}
+.wcup{width:30px;height:30px;border-radius:8px;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;transition:all .15s;}
+.wcup.on{background:var(--blue);border-color:var(--blue);}
+.water-lbl{font-size:13px;color:var(--dim);white-space:nowrap;}
+/* FOOD DATABASE MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center;z-index:100;}
+.modal-bg.open{display:flex;}
+.modal{background:#1c1c1e;border-radius:14px 14px 0 0;width:100%;max-width:480px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;animation:su .22s ease;position:relative;}
+@keyframes su{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal-hdr{padding:16px 16px 10px;border-bottom:.5px solid var(--line);flex-shrink:0;}
+.modal-hdr h3{font-size:17px;font-weight:600;text-align:center;margin-bottom:10px;}
+.modal-x{position:absolute;top:14px;right:14px;background:var(--s2);border:none;color:var(--dim);width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-search{width:100%;background:var(--s2);border:none;color:var(--text);border-radius:10px;padding:10px 14px;font-size:15px;font-family:var(--f);}
+.modal-search:focus{outline:1px solid var(--blue);}
+.modal-tabs{display:flex;gap:6px;overflow-x:auto;padding:8px 16px;scrollbar-width:none;}
+.modal-tabs::-webkit-scrollbar{display:none;}
+.mtab{flex-shrink:0;background:var(--s2);border:none;color:var(--dim);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);}
+.mtab.active{background:var(--blue);color:#fff;}
+.modal-list{flex:1;overflow-y:auto;padding:0 16px 16px;}
+.fi{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:.5px solid var(--line);cursor:pointer;}
+.fi:last-child{border-bottom:none;}
+.fi:active{opacity:.7;}
+.fi-left .fin{font-size:15px;font-weight:500;}
+.fi-left .fim{font-size:12px;color:var(--dim);margin-top:2px;}
+.fi-right{text-align:right;}
+.fi-right .fik{font-size:14px;font-weight:700;}
+.fi-right .fim2{font-size:11px;color:var(--dim);}
+/* PORTION MODAL */
+.portion-modal{background:#1c1c1e;border-radius:14px 14px 0 0;width:100%;max-width:480px;padding:20px 16px 32px;animation:su .22s ease;}
+.pm-name{font-size:18px;font-weight:700;margin-bottom:4px;}
+.pm-per{font-size:13px;color:var(--dim);margin-bottom:16px;}
+.pm-macros{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+.pm-m{background:var(--s2);border-radius:10px;padding:10px;text-align:center;}
+.pm-m .pmv{font-size:16px;font-weight:700;}
+.pm-m .pml{font-size:11px;color:var(--dim);margin-top:2px;}
+.pm-qty{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.pm-qty label{font-size:14px;color:var(--dim);flex-shrink:0;}
+.pm-qty input{flex:1;background:var(--s2);border:none;border-radius:10px;color:var(--text);font-size:18px;font-weight:700;padding:10px 14px;font-family:var(--f);text-align:center;}
+.pm-qty input:focus{outline:1px solid var(--blue);}
+.pm-qty span{font-size:14px;color:var(--dim);}
+.pm-result{background:var(--s2);border-radius:10px;padding:12px;margin-bottom:16px;text-align:center;}
+.pm-result .prk{font-size:24px;font-weight:700;color:var(--accent);}
+.pm-result .prm{font-size:13px;color:var(--dim);margin-top:4px;}
+/* RECOMMENDED */
+.rec-list{padding:10px 16px 14px;border-top:.5px solid var(--line);}
+.rec-hdr{font-size:12px;color:var(--blue);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.rec-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:.5px solid var(--line);cursor:pointer;}
+.rec-item:last-child{border-bottom:none;}
+.rec-item:active{opacity:.7;}
+.ri-left .rin{font-size:14px;font-weight:500;}
+.ri-left .rim{font-size:12px;color:var(--dim);margin-top:1px;}
+.ri-right{display:flex;align-items:center;gap:8px;}
+.ri-kcal{font-size:13px;font-weight:600;color:var(--dim);}
+.ri-add{background:var(--accent);color:#002d12;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--f);}
+/* NUTRITION VIEW */
+.tip{background:linear-gradient(135deg,#1a2e1f,#0d1f14);border:1px solid rgba(48,209,88,.2);border-radius:14px;padding:16px;margin-bottom:10px;}
+.tip h4{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;}
+.tip p{font-size:14px;color:rgba(255,255,255,.8);line-height:1.55;}
+.tip.blue{background:linear-gradient(135deg,#1a1a2e,#0d0d1f);border-color:rgba(10,132,255,.2);}
+.tip.blue h4{color:var(--blue);}
+.tip.red{background:linear-gradient(135deg,#2e1a1a,#1f0d0d);border-color:rgba(255,59,48,.2);}
+.tip.red h4{color:var(--danger);}
+/* PROGRESS */
+.wl-row{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:.5px solid var(--line);}
+.wl-row:last-child{border-bottom:none;}
+/* BTN */
+.btn{border:none;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:600;font-family:var(--f);cursor:pointer;width:100%;margin-bottom:8px;}
+.btn:active{opacity:.8;}
+.btn-green{background:var(--accent);color:#002d12;}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-gray{background:var(--surface);color:var(--blue);}
+/* NAV */
+nav{position:fixed;bottom:0;left:0;right:0;background:rgba(28,28,30,.92);backdrop-filter:blur(20px);border-top:.5px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:30;}
+nav button{flex:1;background:none;border:none;color:var(--dim);padding:8px 0 6px;font-size:10px;font-family:var(--f);font-weight:500;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;}
+nav button span.ic{font-size:22px;}
+nav button.active{color:var(--blue);}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(44,44,46,.96);backdrop-filter:blur(10px);border-radius:14px;padding:10px 18px;font-size:13px;z-index:300;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;color:#fff;}
+.toast.show{opacity:1;}
+.empty{text-align:center;color:var(--dim);font-size:14px;padding:28px 16px;}
+.badge{display:inline-block;background:rgba(255,69,58,.15);color:var(--danger);font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;margin-left:6px;}
+.badge.g{background:rgba(48,209,88,.12);color:var(--accent);}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>Meal Planner</h1>
+  <div class="sub" id="dateNow"></div>
+</div>
+
+<!-- TODAY -->
+<div class="view active" id="view-today">
+  <!-- Macro hero -->
+  <div class="macro-hero">
+    <div class="macro-big">
+      <div class="kb" id="hKcal">0</div>
+      <div class="ks">of 1,800 kcal today</div>
+      <div class="kr" id="hLeft" style="color:var(--accent)">1,800 kcal remaining</div>
+    </div>
+    <div class="macro-bars">
+      <div class="mbar-row">
+        <span class="mbar-label" style="color:var(--blue)">Protein</span>
+        <div class="mbar-track"><div class="mbar-fill" id="bP" style="background:var(--blue);width:0%"></div></div>
+        <span class="mbar-val" id="vP" style="color:var(--blue)">0 / 160g</span>
+      </div>
+      <div class="mbar-row">
+        <span class="mbar-label" style="color:var(--orange)">Carbs</span>
+        <div class="mbar-track"><div class="mbar-fill" id="bC" style="background:var(--orange);width:0%"></div></div>
+        <span class="mbar-val" id="vC" style="color:var(--orange)">0 / 160g</span>
+      </div>
+      <div class="mbar-row">
+        <span class="mbar-label" style="color:var(--pink)">Fat</span>
+        <div class="mbar-track"><div class="mbar-fill" id="bF" style="background:var(--pink);width:0%"></div></div>
+        <span class="mbar-val" id="vF" style="color:var(--pink)">0 / 58g</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Meal slots -->
+  <div class="slabel">Today's meals</div>
+  <div id="mealSlots"></div>
+
+  <!-- Water -->
+  <div class="slabel">Water</div>
+  <div class="card">
+    <div class="water-row">
+      <div class="water-cups" id="waterCups"></div>
+      <div class="water-lbl" id="waterLbl">0/8</div>
+    </div>
+  </div>
+</div>
+
+<!-- SEARCH / ADD -->
+<div class="view" id="view-search">
+  <div class="slabel" style="margin-top:8px;">Food database</div>
+  <input type="text" id="globalSearch" placeholder="Search any food…"
+    style="width:100%;background:var(--surface);border:none;border-radius:14px;color:var(--text);padding:14px 16px;font-size:16px;font-family:var(--f);margin-bottom:12px;"
+    oninput="renderSearchView()">
+  <div class="slabel">Category</div>
+  <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;" id="globalCatTabs"></div>
+  <div id="globalFoodList"></div>
+</div>
+
+<!-- NUTRITION INFO -->
+<div class="view" id="view-nutrition">
+  <div class="slabel" style="margin-top:8px;">Your profile</div>
+  <div class="card">
+    <div class="crow"><span>Weight</span><span style="color:var(--dim)">79.4 kg → target 67 kg</span></div>
+    <div class="crow"><span>Body fat</span><span style="color:var(--danger)">24.6% (goal: &lt;15%)</span></div>
+    <div class="crow"><span>Muscle mass</span><span style="color:var(--orange)">33.2 kg (low-normal)</span></div>
+    <div class="crow"><span>BMR</span><span style="color:var(--dim)">1,797 kcal</span></div>
+    <div class="crow"><span>Daily target</span><span style="color:var(--accent)">1,800 kcal</span></div>
+    <div class="crow"><span>Deficit</span><span style="color:var(--dim)">~400 kcal → ~0.4 kg/week</span></div>
+  </div>
+  <div class="slabel">Macro targets</div>
+  <div class="card">
+    <div class="crow"><span>🥩 Protein</span><span style="color:var(--blue)">160g (640 kcal)</span></div>
+    <div class="crow"><span>🍚 Carbs</span><span style="color:var(--orange)">160g (640 kcal)</span></div>
+    <div class="crow"><span>🥥 Fat</span><span style="color:var(--pink)">58g (520 kcal)</span></div>
+  </div>
+  <div class="slabel">Kerala food guide</div>
+  <div class="tip"><h4>✅ Eat freely</h4><p>Fish (any), egg whites, chicken breast, moringa, drumstick, bitter gourd, cabbage, spinach, cucumber, buttermilk (unsalted), green tea, black coffee</p></div>
+  <div class="tip blue"><h4>⚖️ Measure these</h4><p>Red rice (1 cup cooked = 200 kcal), coconut oil (1 tsp = 40 kcal), coconut milk, whole eggs (limit 2 yolks/day), banana (100 kcal each), chappathi (80 kcal each)</p></div>
+  <div class="tip red"><h4>❌ Limit / avoid</h4><p>Kappa/tapioca daily (high GI, no protein), banana chips, parota, sugary tea, deep-fried snacks, payasam, excess coconut milk gravies</p></div>
+  <div class="slabel">Protein priority</div>
+  <div class="tip blue"><h4>Why 160g protein?</h4><p>Your muscle mass is 33.2 kg — at the low end of normal. During a calorie deficit, your body can burn muscle for energy. 160g protein (2g per kg of target weight) is the minimum to prevent this. Hit protein first every day, then fill remaining calories with carbs and fat.</p></div>
+  <div class="slabel">Daily schedule</div>
+  <div class="card">
+    <div class="crow"><span>7:00 AM</span><span style="color:var(--dim)">Breakfast — 400–450 kcal, 30g+ protein</span></div>
+    <div class="crow"><span>1:00 PM</span><span style="color:var(--dim)">Lunch — 500–600 kcal, 40–50g protein</span></div>
+    <div class="crow"><span>5:30 PM</span><span style="color:var(--dim)">Pre-gym snack — 200–280 kcal, 25–35g protein</span></div>
+    <div class="crow"><span>8:30 PM</span><span style="color:var(--dim)">Dinner — 450–550 kcal, 40–50g protein</span></div>
+  </div>
+</div>
+
+<!-- PROGRESS -->
+<div class="view" id="view-progress">
+  <div class="slabel" style="margin-top:8px;">Log weight</div>
+  <div class="card">
+    <div style="padding:14px 16px;display:flex;gap:10px;align-items:center;">
+      <input type="number" inputmode="decimal" id="wInput" placeholder="79.4" step="0.1"
+        style="flex:1;background:var(--s2);border:none;border-radius:10px;color:#fff;font-size:18px;font-weight:700;padding:10px 14px;font-family:var(--f);">
+      <span style="color:var(--dim)">kg</span>
+      <button class="btn btn-green" style="width:auto;margin:0;padding:10px 18px;" onclick="logWeight()">Log</button>
+    </div>
+  </div>
+  <div class="card" id="weightHist"><div class="empty">No entries yet</div></div>
+  <div style="padding:4px 0 16px;"><canvas id="wChart" height="180" style="width:100%;"></canvas></div>
+  <div class="slabel">Weekly adherence</div>
+  <div class="card card-pad" id="adherenceCard"><div class="empty">Log meals to track adherence</div></div>
+</div>
+
+<nav>
+  <button class="active" data-v="today" onclick="nav('today')"><span class="ic">🍽️</span>Today</button>
+  <button data-v="search" onclick="nav('search')"><span class="ic">🔍</span>Foods</button>
+  <button data-v="nutrition" onclick="nav('nutrition')"><span class="ic">🥗</span>Guide</button>
+  <button data-v="progress" onclick="nav('progress')"><span class="ic">📊</span>Progress</button>
+</nav>
+
+<!-- FOOD PICKER MODAL -->
+<div class="modal-bg" id="pickerModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3 id="pickerTitle">Add food</h3>
+      <button class="modal-x" onclick="closeModal()">×</button>
+      <input class="modal-search" type="text" id="pickerSearch" placeholder="Search foods…" oninput="filterPicker()">
+      <div class="modal-tabs" id="pickerTabs"></div>
+    </div>
+    <div class="modal-list" id="pickerList"></div>
+  </div>
+</div>
+
+<!-- PORTION MODAL -->
+<div class="modal-bg" id="portionModal">
+  <div class="modal" style="padding:0;">
+    <div class="portion-modal">
+      <button class="modal-x" onclick="closePortionModal()">×</button>
+      <div class="pm-name" id="pmName"></div>
+      <div class="pm-per" id="pmPer">Per 100g</div>
+      <div class="pm-macros">
+        <div class="pm-m"><div class="pmv" id="pmK" style="color:var(--accent)">0</div><div class="pml">kcal</div></div>
+        <div class="pm-m"><div class="pmv" id="pmP" style="color:var(--blue)">0g</div><div class="pml">protein</div></div>
+        <div class="pm-m"><div class="pmv" id="pmC" style="color:var(--orange)">0g</div><div class="pml">carbs</div></div>
+        <div class="pm-m"><div class="pmv" id="pmF" style="color:var(--pink)">0g</div><div class="pml">fat</div></div>
+      </div>
+      <div class="pm-qty">
+        <label>Amount</label>
+        <input type="number" inputmode="decimal" id="pmQty" value="100" oninput="updatePortion()">
+        <span id="pmUnit">g</span>
+      </div>
+      <div class="pm-result">
+        <div class="prk" id="prKcal">0 kcal</div>
+        <div class="prm" id="prMacros">P 0g · C 0g · F 0g</div>
+      </div>
+      <button class="btn btn-green" onclick="confirmAdd()">Add to meal</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ═══════════════════════════════════════════
+// FOOD DATABASE (per 100g unless noted)
+// k=kcal, p=protein, c=carbs, f=fat
+// ═══════════════════════════════════════════
+const DB = [
+  // KERALA FISH & SEAFOOD
+  {n:"Karimeen (Pearl Spot Fish)", cat:"Kerala Fish", k:97, p:19, c:0, f:2, unit:"g"},
+  {n:"Ayala (Mackerel)", cat:"Kerala Fish", k:205, p:18, c:0, f:14, unit:"g"},
+  {n:"Mathi (Sardine)", cat:"Kerala Fish", k:208, p:21, c:0, f:13, unit:"g"},
+  {n:"Netholi (Anchovy)", cat:"Kerala Fish", k:131, p:20, c:0, f:5, unit:"g"},
+  {n:"Pomfret (Avoli)", cat:"Kerala Fish", k:96, p:18, c:0, f:3, unit:"g"},
+  {n:"Prawns (Kerala)", cat:"Kerala Fish", k:99, p:24, c:0, f:1, unit:"g"},
+  {n:"Squid (Koonthal)", cat:"Kerala Fish", k:92, p:16, c:3, f:1, unit:"g"},
+  {n:"Tilapia", cat:"Kerala Fish", k:96, p:20, c:0, f:2, unit:"g"},
+  {n:"Crab", cat:"Kerala Fish", k:87, p:18, c:0, f:1, unit:"g"},
+  {n:"Tuna (canned in water)", cat:"Kerala Fish", k:116, p:26, c:0, f:1, unit:"g"},
+  // KERALA DISHES
+  {n:"Kerala Fish Curry (Meen Mulakittathu)", cat:"Kerala Dishes", k:110, p:14, c:5, f:4, unit:"g"},
+  {n:"Chicken Stew (Kerala)", cat:"Kerala Dishes", k:120, p:14, c:5, f:5, unit:"g"},
+  {n:"Beef Curry (Kerala, lean)", cat:"Kerala Dishes", k:160, p:18, c:4, f:8, unit:"g"},
+  {n:"Sambar", cat:"Kerala Dishes", k:45, p:3, c:7, f:1, unit:"g"},
+  {n:"Rasam", cat:"Kerala Dishes", k:25, p:1, c:4, f:0, unit:"g"},
+  {n:"Aviyal", cat:"Kerala Dishes", k:80, p:2, c:8, f:4, unit:"g"},
+  {n:"Thoran (Cabbage)", cat:"Kerala Dishes", k:65, p:2, c:7, f:3, unit:"g"},
+  {n:"Thoran (Beans)", cat:"Kerala Dishes", k:70, p:3, c:8, f:3, unit:"g"},
+  {n:"Parippu (Dal) Curry", cat:"Kerala Dishes", k:80, p:5, c:10, f:2, unit:"g"},
+  {n:"Kadala Curry (Black Chickpea)", cat:"Kerala Dishes", k:120, p:8, c:18, f:3, unit:"g"},
+  {n:"Olan (Ash Gourd)", cat:"Kerala Dishes", k:55, p:2, c:8, f:2, unit:"g"},
+  {n:"Kootu Curry", cat:"Kerala Dishes", k:95, p:4, c:12, f:4, unit:"g"},
+  {n:"Moru Curry (Buttermilk curry)", cat:"Kerala Dishes", k:35, p:2, c:3, f:1, unit:"g"},
+  {n:"Muringakka (Drumstick) Soup", cat:"Kerala Dishes", k:30, p:2, c:4, f:0, unit:"g"},
+  {n:"Cheera (Spinach) stir fry", cat:"Kerala Dishes", k:45, p:3, c:4, f:2, unit:"g"},
+  {n:"Pavakka (Bitter Gourd) fry", cat:"Kerala Dishes", k:40, p:2, c:5, f:2, unit:"g"},
+  // KERALA CARBS / STAPLES
+  {n:"Red Rice (cooked)", cat:"Kerala Staples", k:111, p:2, c:24, f:0, unit:"g"},
+  {n:"White Rice (cooked)", cat:"Kerala Staples", k:130, p:3, c:28, f:0, unit:"g"},
+  {n:"Appam (1 piece ~50g)", cat:"Kerala Staples", k:90, p:2, c:19, f:1, unit:"piece"},
+  {n:"Puttu (wheat, per cylinder ~80g)", cat:"Kerala Staples", k:150, p:4, c:30, f:1, unit:"piece"},
+  {n:"Idiyappam (1 piece ~40g)", cat:"Kerala Staples", k:70, p:1, c:15, f:0, unit:"piece"},
+  {n:"Chappathi (wheat, 1 medium)", cat:"Kerala Staples", k:80, p:2, c:15, f:2, unit:"piece"},
+  {n:"Dosa (plain, 1 medium)", cat:"Kerala Staples", k:90, p:3, c:17, f:2, unit:"piece"},
+  {n:"Kappa (Tapioca, cooked)", cat:"Kerala Staples", k:135, p:1, c:32, f:0, unit:"g"},
+  {n:"Rice Kanji (congee)", cat:"Kerala Staples", k:50, p:1, c:11, f:0, unit:"g"},
+  {n:"Pappadam (1 piece)", cat:"Kerala Staples", k:50, p:2, c:8, f:2, unit:"piece"},
+  {n:"Coconut Oil", cat:"Kerala Staples", k:892, p:0, c:0, f:99, unit:"g"},
+  {n:"Coconut Milk (thin)", cat:"Kerala Staples", k:120, p:1, c:3, f:12, unit:"g"},
+  {n:"Buttermilk / Moru (unsalted)", cat:"Kerala Staples", k:15, p:1, c:2, f:0, unit:"g"},
+  // EGGS
+  {n:"Whole Egg", cat:"Eggs", k:155, p:13, c:1, f:11, unit:"g"},
+  {n:"Egg White only", cat:"Eggs", k:52, p:11, c:1, f:0, unit:"g"},
+  {n:"Boiled Egg (1 large ~50g)", cat:"Eggs", k:78, p:6, c:1, f:5, unit:"piece"},
+  {n:"Egg White (1 large)", cat:"Eggs", k:17, p:4, c:0, f:0, unit:"piece"},
+  {n:"Egg Bhurji (2 eggs, minimal oil)", cat:"Eggs", k:160, p:12, c:2, f:11, unit:"serving"},
+  {n:"Omelette (2 eggs, tawa)", cat:"Eggs", k:190, p:14, c:2, f:14, unit:"serving"},
+  // CHICKEN
+  {n:"Chicken Breast (raw)", cat:"Chicken", k:165, p:31, c:0, f:4, unit:"g"},
+  {n:"Chicken Breast (grilled)", cat:"Chicken", k:165, p:31, c:0, f:4, unit:"g"},
+  {n:"Chicken Breast (boiled)", cat:"Chicken", k:150, p:30, c:0, f:3, unit:"g"},
+  {n:"Chicken Thigh (skinless)", cat:"Chicken", k:177, p:24, c:0, f:9, unit:"g"},
+  {n:"Chicken Liver", cat:"Chicken", k:172, p:27, c:1, f:6, unit:"g"},
+  // PANEER & DAIRY
+  {n:"Paneer (low fat)", cat:"Dairy", k:145, p:17, c:3, f:7, unit:"g"},
+  {n:"Paneer (full fat)", cat:"Dairy", k:265, p:18, c:3, f:20, unit:"g"},
+  {n:"Curd / Yoghurt (plain, low fat)", cat:"Dairy", k:60, p:4, c:5, f:2, unit:"g"},
+  {n:"Skimmed Milk", cat:"Dairy", k:35, p:3, c:5, f:0, unit:"g"},
+  {n:"Whey Protein (1 scoop ~30g)", cat:"Dairy", k:120, p:24, c:3, f:2, unit:"scoop"},
+  // LEGUMES
+  {n:"Toor Dal (cooked)", cat:"Legumes", k:116, p:7, c:20, f:1, unit:"g"},
+  {n:"Black Chickpea / Kadala (cooked)", cat:"Legumes", k:164, p:9, c:27, f:3, unit:"g"},
+  {n:"Moong Dal (cooked)", cat:"Legumes", k:105, p:7, c:19, f:1, unit:"g"},
+  {n:"Kidney Beans / Rajma (cooked)", cat:"Legumes", k:127, p:9, c:22, f:1, unit:"g"},
+  {n:"Lentils / Masoor Dal (cooked)", cat:"Legumes", k:116, p:9, c:20, f:0, unit:"g"},
+  // VEGETABLES (Kerala common)
+  {n:"Drumstick leaves (Moringa)", cat:"Vegetables", k:64, p:9, c:8, f:1, unit:"g"},
+  {n:"Ash Gourd (Kumbalanga)", cat:"Vegetables", k:13, p:1, c:3, f:0, unit:"g"},
+  {n:"Bitter Gourd (Pavakka)", cat:"Vegetables", k:17, p:1, c:3, f:0, unit:"g"},
+  {n:"Snake Gourd (Padavalanga)", cat:"Vegetables", k:18, p:1, c:4, f:0, unit:"g"},
+  {n:"Yam (Chena, raw)", cat:"Vegetables", k:118, p:2, c:28, f:0, unit:"g"},
+  {n:"Banana Flower (Vazhapoo)", cat:"Vegetables", k:51, p:2, c:10, f:1, unit:"g"},
+  {n:"Raw Plantain (Nendran green)", cat:"Vegetables", k:122, p:1, c:32, f:0, unit:"g"},
+  {n:"Spinach (Cheera)", cat:"Vegetables", k:23, p:3, c:4, f:0, unit:"g"},
+  {n:"Cauliflower", cat:"Vegetables", k:25, p:2, c:5, f:0, unit:"g"},
+  {n:"Carrot", cat:"Vegetables", k:41, p:1, c:10, f:0, unit:"g"},
+  {n:"Cucumber", cat:"Vegetables", k:16, p:1, c:4, f:0, unit:"g"},
+  {n:"Tomato", cat:"Vegetables", k:18, p:1, c:4, f:0, unit:"g"},
+  // FRUITS
+  {n:"Banana (Nendran, ripe)", cat:"Fruits", k:122, p:1, c:32, f:0, unit:"g"},
+  {n:"Banana (small, Palayamkodan)", cat:"Fruits", k:89, p:1, c:23, f:0, unit:"g"},
+  {n:"Papaya", cat:"Fruits", k:43, p:1, c:11, f:0, unit:"g"},
+  {n:"Watermelon", cat:"Fruits", k:30, p:1, c:8, f:0, unit:"g"},
+  {n:"Orange", cat:"Fruits", k:47, p:1, c:12, f:0, unit:"g"},
+  {n:"Apple", cat:"Fruits", k:52, p:0, c:14, f:0, unit:"g"},
+  {n:"Tender Coconut Water (1 glass 240ml)", cat:"Fruits", k:45, p:2, c:9, f:0, unit:"glass"},
+  // GYM FOODS
+  {n:"Rolled Oats (dry)", cat:"Gym Foods", k:389, p:17, c:66, f:7, unit:"g"},
+  {n:"Peanut Butter (natural)", cat:"Gym Foods", k:588, p:25, c:20, f:50, unit:"g"},
+  {n:"Roasted Peanuts (unsalted)", cat:"Gym Foods", k:567, p:26, c:16, f:49, unit:"g"},
+  {n:"Roasted Chickpeas (dry)", cat:"Gym Foods", k:364, p:19, c:60, f:6, unit:"g"},
+  {n:"Brown Bread (1 slice)", cat:"Gym Foods", k:70, p:3, c:13, f:1, unit:"slice"},
+  {n:"Olive Oil", cat:"Gym Foods", k:884, p:0, c:0, f:100, unit:"g"},
+  {n:"Almonds (raw)", cat:"Gym Foods", k:579, p:21, c:22, f:50, unit:"g"},
+  {n:"Banana (medium, gym snack)", cat:"Gym Foods", k:89, p:1, c:23, f:0, unit:"piece"},
+  {n:"Sweet Potato (boiled)", cat:"Gym Foods", k:86, p:2, c:20, f:0, unit:"g"},
+];
+
+const CATS = [...new Set(DB.map(f=>f.cat))];
+
+// MEAL SLOTS config
+const SLOTS = [
+  {id:"breakfast", label:"Breakfast", time:"7:00 AM", targetK:430, targetP:30},
+  {id:"lunch",     label:"Lunch",     time:"1:00 PM", targetK:570, targetP:48},
+  {id:"snack",     label:"Pre-gym snack", time:"5:30 PM", targetK:260, targetP:30},
+  {id:"dinner",    label:"Dinner",    time:"8:30 PM", targetK:540, targetP:48},
+];
+
+const TARGETS = {k:1800, p:160, c:160, f:58};
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let state = {
+  days: {},    // {"2025-6-16": {breakfast:[...], lunch:[...], snack:[...], dinner:[...]}, water:3}
+  weights: [], // [{date, val}]
+};
+function todayKey(){const d=new Date();return`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;}
+function getDay(){
+  const k=todayKey();
+  if(!state.days[k]) state.days[k]={breakfast:[],lunch:[],snack:[],dinner:[],water:0};
+  return state.days[k];
+}
+function saveState(){try{localStorage.setItem('il_meals2',JSON.stringify(state));}catch(e){}}
+function loadState(){try{const s=localStorage.getItem('il_meals2');if(s)state=JSON.parse(s);}catch(e){}}
+
+// ═══════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════
+function nav(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  if(v==='today') renderToday();
+  if(v==='search') renderSearchView();
+  if(v==='progress'){renderWeightHist();renderAdherence();}
+}
+function toast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+// ═══════════════════════════════════════════
+// TODAY VIEW
+// ═══════════════════════════════════════════
+function renderToday(){
+  const day=getDay();
+  // Compute totals
+  let tk=0,tp=0,tc=0,tf=0;
+  SLOTS.forEach(s=>{(day[s.id]||[]).forEach(f=>{tk+=f.k;tp+=f.p;tc+=f.c;tf+=f.f;});});
+
+  // Hero macros
+  document.getElementById('hKcal').textContent=Math.round(tk).toLocaleString();
+  const rem=Math.max(0,TARGETS.k-tk);
+  document.getElementById('hLeft').textContent=rem>0?`${rem} kcal remaining`:'Goal reached 🎉';
+  document.getElementById('hLeft').style.color=tk>TARGETS.k?'var(--danger)':tk>TARGETS.k*0.85?'var(--orange)':'var(--accent)';
+  document.getElementById('bP').style.width=Math.min(tp/TARGETS.p*100,100)+'%';
+  document.getElementById('bC').style.width=Math.min(tc/TARGETS.c*100,100)+'%';
+  document.getElementById('bF').style.width=Math.min(tf/TARGETS.f*100,100)+'%';
+  document.getElementById('vP').textContent=`${Math.round(tp)} / ${TARGETS.p}g`;
+  document.getElementById('vC').textContent=`${Math.round(tc)} / ${TARGETS.c}g`;
+  document.getElementById('vF').textContent=`${Math.round(tf)} / ${TARGETS.f}g`;
+
+  // Meal slots
+  document.getElementById('mealSlots').innerHTML=SLOTS.map(slot=>{
+    const items=day[slot.id]||[];
+    const slotK=items.reduce((s,f)=>s+f.k,0);
+    const slotP=items.reduce((s,f)=>s+f.p,0);
+    const remaining={k:TARGETS.k-tk, p:TARGETS.p-tp, c:TARGETS.c-tc, f:TARGETS.f-tf};
+    const recs=getRecommendations(slot, remaining, day);
+    return `<div class="meal-slot">
+      <div class="slot-hdr">
+        <div>
+          <div class="slot-time">${slot.time} · ${slot.label}</div>
+          ${items.length?`<div class="slot-kcal">${Math.round(slotK)} kcal · ${Math.round(slotP)}g protein</div>`:
+          `<div class="slot-empty">Nothing logged yet — target ${slot.targetK} kcal</div>`}
+        </div>
+      </div>
+      ${items.map((f,fi)=>`<div class="lf-row">
+        <div class="lf-left"><div class="lfn">${esc(f.n)}</div><div class="lfq">${f.qty}${f.unit} · P${Math.round(f.p)}g C${Math.round(f.c)}g F${Math.round(f.f)}g</div></div>
+        <div class="lf-right"><div class="lf-kcal">${Math.round(f.k)} kcal</div><button class="lf-del" onclick="removeFood('${slot.id}',${fi})">✕</button></div>
+      </div>`).join('')}
+      <div class="slot-add">
+        <button class="rec-btn" onclick="openPicker('${slot.id}')">+ Add food to ${slot.label}</button>
+      </div>
+      ${recs.length?`<div class="rec-list">
+        <div class="rec-hdr">✨ Recommended for you</div>
+        ${recs.map(r=>`<div class="rec-item" onclick="quickAdd('${slot.id}','${esc(r.n)}',${r.defQty})">
+          <div class="ri-left"><div class="rin">${esc(r.n)}</div><div class="rim">${r.defQty}${r.unit} · P${Math.round(r.p*r.defQty/100)}g</div></div>
+          <div class="ri-right"><div class="ri-kcal">${Math.round(r.k*r.defQty/100)} kcal</div><button class="ri-add">+ Add</button></div>
+        </div>`).join('')}
+      </div>`:''}
+    </div>`;
+  }).join('');
+
+  // Water
+  const wc=day.water||0;
+  document.getElementById('waterLbl').textContent=`${wc}/8 glasses`;
+  document.getElementById('waterCups').innerHTML=Array.from({length:8},(_,i)=>
+    `<div class="wcup${i<wc?' on':''}" onclick="toggleWater(${i})">${i<wc?'💧':'○'}</div>`).join('');
+}
+
+function getRecommendations(slot, remaining, day){
+  // Already logged in this slot today
+  const logged=new Set((day[slot.id]||[]).map(f=>f.n));
+  // Filter by what fits remaining kcal and boosts protein
+  const remK=remaining.k;
+  const remP=remaining.p;
+  if(remK<=50) return [];
+  // Score: protein density + how well it fits remaining kcal window
+  const slotBudget=slot.targetK;
+  const slotLogged=(day[slot.id]||[]).reduce((s,f)=>s+f.k,0);
+  const slotRem=slotBudget-slotLogged;
+  return DB
+    .filter(f=>!logged.has(f.n))
+    .map(f=>{
+      // default serving size
+      const defQty = f.unit==='piece'||f.unit==='slice'||f.unit==='scoop'||f.unit==='glass'||f.unit==='serving'?1:100;
+      const fk=f.k*defQty/100, fp=f.p*defQty/100;
+      // Score: protein contribution + calorie fit
+      const proteinScore = remP>0 ? fp/remP : 0;
+      const kcalFit = slotRem>0 ? 1-Math.abs(fk-slotRem/2)/slotRem : 0;
+      return {...f, defQty, score: proteinScore*0.7 + kcalFit*0.3, fk, fp};
+    })
+    .filter(f=>f.fk<=Math.max(remK,50) && f.fk>0)
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,3);
+}
+
+function removeFood(slotId, idx){
+  const day=getDay();
+  day[slotId].splice(idx,1);
+  saveState(); renderToday();
+}
+
+function toggleWater(idx){
+  const day=getDay();
+  const cur=day.water||0;
+  day.water=idx<cur?idx:idx+1;
+  saveState(); renderToday();
+}
+
+// ═══════════════════════════════════════════
+// FOOD PICKER
+// ═══════════════════════════════════════════
+let pickerSlot=null, pickerCat='All', portionFood=null, portionSlot=null;
+
+function openPicker(slotId){
+  pickerSlot=slotId;
+  pickerCat='All';
+  document.getElementById('pickerTitle').textContent='Add to '+SLOTS.find(s=>s.id===slotId)?.label;
+  document.getElementById('pickerSearch').value='';
+  renderPickerTabs();
+  filterPicker();
+  document.getElementById('pickerModal').classList.add('open');
+}
+function closeModal(){document.getElementById('pickerModal').classList.remove('open');}
+
+function renderPickerTabs(){
+  const tabs=['All',...CATS];
+  document.getElementById('pickerTabs').innerHTML=tabs.map(c=>
+    `<button class="mtab${c===pickerCat?' active':''}" onclick="setCat('${c}')">${c}</button>`).join('');
+}
+function setCat(c){pickerCat=c;renderPickerTabs();filterPicker();}
+
+function filterPicker(){
+  const q=(document.getElementById('pickerSearch').value||'').toLowerCase();
+  const list=DB.filter(f=>{
+    const matchQ=f.n.toLowerCase().includes(q)||f.cat.toLowerCase().includes(q);
+    const matchC=pickerCat==='All'||f.cat===pickerCat;
+    return matchQ&&matchC;
+  });
+  document.getElementById('pickerList').innerHTML=list.map(f=>`
+    <div class="fi" onclick="openPortion('${esc(f.n)}','${pickerSlot}')">
+      <div class="fi-left"><div class="fin">${esc(f.n)}</div><div class="fim">${f.cat} · per ${f.unit==='g'?'100g':f.unit}</div></div>
+      <div class="fi-right"><div class="fik">${f.unit==='g'?f.k+' kcal/100g':f.k+' kcal'}</div><div class="fim2">P${f.p}g C${f.c}g F${f.f}g</div></div>
+    </div>`).join('')||'<div class="empty">No results</div>';
+}
+
+// ═══════════════════════════════════════════
+// PORTION MODAL
+// ═══════════════════════════════════════════
+function openPortion(foodName, slotId){
+  const food=DB.find(f=>f.n===foodName); if(!food) return;
+  portionFood=food; portionSlot=slotId;
+  closeModal();
+  document.getElementById('pmName').textContent=food.n;
+  document.getElementById('pmPer').textContent=food.unit==='g'?'Per 100g':`Per ${food.unit}`;
+  document.getElementById('pmK').textContent=food.k;
+  document.getElementById('pmP').textContent=food.p+'g';
+  document.getElementById('pmC').textContent=food.c+'g';
+  document.getElementById('pmF').textContent=food.f+'g';
+  document.getElementById('pmUnit').textContent=food.unit==='g'?'g':food.unit+'(s)';
+  const defQty=food.unit==='g'?100:1;
+  document.getElementById('pmQty').value=defQty;
+  document.getElementById('portionModal').classList.add('open');
+  updatePortion();
+}
+function closePortionModal(){document.getElementById('portionModal').classList.remove('open');}
+
+function updatePortion(){
+  const food=portionFood; if(!food) return;
+  const qty=parseFloat(document.getElementById('pmQty').value)||0;
+  const mul=food.unit==='g'?qty/100:qty;
+  const rk=Math.round(food.k*mul);
+  const rp=Math.round(food.p*mul*10)/10;
+  const rc=Math.round(food.c*mul*10)/10;
+  const rf=Math.round(food.f*mul*10)/10;
+  document.getElementById('prKcal').textContent=rk+' kcal';
+  document.getElementById('prMacros').textContent=`P ${rp}g · C ${rc}g · F ${rf}g`;
+}
+
+function confirmAdd(){
+  const food=portionFood; const slotId=portionSlot; if(!food||!slotId) return;
+  const qty=parseFloat(document.getElementById('pmQty').value)||0;
+  const mul=food.unit==='g'?qty/100:qty;
+  const entry={
+    n:food.n, unit:food.unit==='g'?'g':food.unit,
+    qty:qty,
+    k:Math.round(food.k*mul), p:Math.round(food.p*mul*10)/10,
+    c:Math.round(food.c*mul*10)/10, f:Math.round(food.f*mul*10)/10,
+  };
+  const day=getDay();
+  day[slotId].push(entry);
+  saveState(); closePortionModal(); renderToday();
+  toast(`${food.n} added ✓`);
+}
+
+function quickAdd(slotId, foodName, qty){
+  const food=DB.find(f=>f.n===foodName); if(!food) return;
+  const mul=food.unit==='g'?qty/100:qty;
+  const entry={
+    n:food.n, unit:food.unit==='g'?'g':food.unit,
+    qty:qty,
+    k:Math.round(food.k*mul), p:Math.round(food.p*mul*10)/10,
+    c:Math.round(food.c*mul*10)/10, f:Math.round(food.f*mul*10)/10,
+  };
+  const day=getDay();
+  day[slotId].push(entry);
+  saveState(); renderToday();
+  toast(`${food.n} added ✓`);
+}
+
+// ═══════════════════════════════════════════
+// SEARCH VIEW
+// ═══════════════════════════════════════════
+let globalCat='All';
+function renderSearchView(){
+  const tabs=['All',...CATS];
+  document.getElementById('globalCatTabs').innerHTML=tabs.map(c=>
+    `<button class="mtab${c===globalCat?' active':''}" style="flex-shrink:0;" onclick="setGlobalCat('${c}')">${c}</button>`).join('');
+  const q=(document.getElementById('globalSearch').value||'').toLowerCase();
+  const list=DB.filter(f=>{
+    const mq=f.n.toLowerCase().includes(q)||f.cat.toLowerCase().includes(q);
+    const mc=globalCat==='All'||f.cat===globalCat;
+    return mq&&mc;
+  });
+  document.getElementById('globalFoodList').innerHTML=list.map(f=>`
+    <div class="card" style="margin-bottom:8px;">
+      <div class="crow" style="cursor:pointer;" onclick="openPortion('${esc(f.n)}','breakfast')">
+        <div><div style="font-size:15px;font-weight:500;">${esc(f.n)}</div><div style="font-size:12px;color:var(--dim);margin-top:2px;">${f.cat}</div></div>
+        <div style="text-align:right;">
+          <div style="font-size:14px;font-weight:700;">${f.unit==='g'?f.k+' kcal/100g':f.k+' kcal'}</div>
+          <div style="font-size:11px;color:var(--blue);">P${f.p}g C${f.c}g F${f.f}g</div>
+        </div>
+      </div>
+    </div>`).join('')||'<div class="empty">No results</div>';
+}
+function setGlobalCat(c){globalCat=c;renderSearchView();}
+
+// ═══════════════════════════════════════════
+// WEIGHT LOG
+// ═══════════════════════════════════════════
+let wChart=null;
+function logWeight(){
+  const v=parseFloat(document.getElementById('wInput').value);
+  if(!v||v<30||v>300){toast('Enter a valid weight');return;}
+  state.weights.unshift({date:Date.now(),val:v});
+  state.weights=state.weights.slice(0,90);
+  document.getElementById('wInput').value='';
+  saveState(); renderWeightHist(); toast('Weight logged ✓');
+}
+function renderWeightHist(){
+  const el=document.getElementById('weightHist');
+  if(!state.weights.length){el.innerHTML='<div class="empty">No entries yet</div>';return;}
+  el.innerHTML=state.weights.slice(0,10).map(e=>`
+    <div class="wl-row">
+      <span style="font-size:12px;color:var(--dim);">${new Date(e.date).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}</span>
+      <span style="font-size:16px;font-weight:700;">${e.val} kg</span>
+    </div>`).join('');
+  drawWChart();
+}
+function drawWChart(){
+  const pts=state.weights.slice().reverse();
+  if(pts.length<2) return;
+  if(wChart){wChart.destroy();wChart=null;}
+  wChart=new Chart(document.getElementById('wChart'),{type:'line',
+    data:{labels:pts.map(p=>new Date(p.date).toLocaleDateString(undefined,{month:'short',day:'numeric'})),
+      datasets:[
+        {label:'Weight',data:pts.map(p=>p.val),borderColor:'#30d158',backgroundColor:'rgba(48,209,88,.1)',fill:true,tension:.3,pointRadius:4,borderWidth:2},
+        {label:'Target',data:pts.map(()=>67),borderColor:'rgba(255,59,48,.5)',borderDash:[6,3],borderWidth:1,pointRadius:0,fill:false},
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{grid:{color:'#38383a'},ticks:{color:'#8e8e93'},min:Math.min(65,...pts.map(p=>p.val))-1},x:{grid:{display:false},ticks:{color:'#8e8e93',maxTicksLimit:6}}}}
+  });
+}
+function renderAdherence(){
+  const card=document.getElementById('adherenceCard');
+  const days=Object.values(state.days);
+  if(!days.length){card.innerHTML='<div class="empty">Log meals to see adherence</div>';return;}
+  let logged=0,total=0;
+  days.forEach(d=>{SLOTS.forEach(s=>{total++;if(d[s.id]&&d[s.id].length)logged++;});});
+  const pct=total?Math.round((logged/total)*100):0;
+  const col=pct>=80?'var(--accent)':pct>=60?'var(--orange)':'var(--danger)';
+  card.innerHTML=`<div style="padding:14px 16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <span style="font-weight:600;">Meal logging rate</span>
+      <span style="font-size:22px;font-weight:700;color:${col}">${pct}%</span>
+    </div>
+    <div style="height:8px;background:var(--s2);border-radius:4px;overflow:hidden;margin-bottom:6px;">
+      <div style="height:100%;width:${pct}%;background:${col};border-radius:4px;"></div>
+    </div>
+    <div style="font-size:12px;color:var(--dim);">${logged} of ${total} meal slots logged · aim for 80%+</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+function init(){
+  loadState();
+  document.getElementById('dateNow').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+  renderToday();
+}
+init();
+</script>
+</body>
+</html>
